@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Conda / pip
+.env
+.venv
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Bioinformatics intermediates
+*.bam
+*.bai
+*.parquet
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.bed
+*.fa
+*.fasta
+*.fai
+temp_*.bam
+md_*.mosdepth.*
+
+# Demo outputs (keep demo inputs, ignore outputs)
+Demo/*.vcf
+Demo/*.vcf.gz
+Demo/*.vcf.gz.tbi
+Demo/*.parquet
+Demo/temp_*
+Demo/md_*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
