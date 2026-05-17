@@ -56,8 +56,8 @@ def resolve_model_dir(species, mode):
             f"No model folder starting with '{prefix}' found in: {species_dir}"
         )
 
-    folder   = matched[0]
-    match    = re.search(r'w=(\d+)', folder)
+    folder = matched[0]
+    match  = re.search(r'w=(\d+)', folder)
 
     if not match:
         raise RuntimeError(
@@ -159,7 +159,7 @@ def select_encode_test(chrom, start, end, dct):
     fasta_path = dct['fasta_path']
     bam_path   = dct['bam_path']
     bed_path   = dct['bed_path']
-    min_vaf    = dct['min_vaf']
+    min_af    = dct['min_af']
     win_size   = dct['win_size']
     rd_floor   = dct['rd_floor']
     bam_depth  = dct['bam_depth']
@@ -242,7 +242,7 @@ def select_encode_test(chrom, start, end, dct):
         alt_num  = max([snp_num, ins_num, del_num, 0])
         alt_freq = alt_num / v_rd
 
-        if alt_freq < min_vaf:
+        if alt_freq < min_af:
             continue
 
         if snp_num >= ins_num and snp_num >= del_num:
@@ -288,10 +288,10 @@ def select_encode_test(chrom, start, end, dct):
 
     df = pd.DataFrame({
         'chrom':   pd.Series([chrom] * len(pos_list), dtype='category'),
-        'pos':     pd.Series(pos_list,    dtype='uint32'),
-        'ref':     pd.Series(ref_list,    dtype='string'),
-        'alt':     pd.Series(alt_list,    dtype='string'),
-        'rd':      pd.Series(rd_list,     dtype='uint16'),
+        'pos':     pd.Series(pos_list,     dtype='uint32'),
+        'ref':     pd.Series(ref_list,     dtype='string'),
+        'alt':     pd.Series(alt_list,     dtype='string'),
+        'rd':      pd.Series(rd_list,      dtype='uint16'),
         'ref_num': pd.Series(ref_num_list, dtype='uint16'),
         'alt_num': pd.Series(alt_num_list, dtype='uint16'),
     })
@@ -309,6 +309,7 @@ def process_chromosomes(dct):
     gpu_available = dct['gpu_available']
     model_path    = dct['model_path']
     stat_path     = dct['stat_path']
+    work_dir      = dct['work_dir']
 
     seq_len = 2 * win_size + 1
 
@@ -368,7 +369,11 @@ def process_chromosomes(dct):
     all_df["pred_prob"]  = np.max(y_preds,  axis=1).astype(np.float32)
     all_df["pred_label"] = np.argmax(y_preds, axis=1).astype(np.uint8)
 
-    all_df.to_parquet(f"{chrom}.parquet", index=False, compression='zstd')
+    all_df.to_parquet(
+        os.path.join(work_dir, f"{chrom}.parquet"),
+        index=False,
+        compression='zstd',
+    )
 
 
 def main():
@@ -385,9 +390,10 @@ def main():
     required.add_argument("--bam_depth",     type=int,   required=True)
     required.add_argument("--species",       type=str,   required=True)
     required.add_argument("--mode",          type=str,   required=True)
-    required.add_argument("--min_vaf",       type=float, required=True)
+    required.add_argument("--min_af",        type=float, required=True)
     required.add_argument("--rd_floor",      type=int,   required=True)
     required.add_argument("--gpu_available",             required=True)
+    required.add_argument("--work_dir",      type=str,   required=True)
 
     args = parser.parse_args()
 
@@ -413,12 +419,13 @@ def main():
         'num_threads'   : args.cpus,
         'bam_depth'     : args.bam_depth,
         'win_size'      : win_size,
-        'min_vaf'       : args.min_vaf,
+        'min_af'       : args.min_af,
         'rd_floor'      : args.rd_floor,
         'rd_divisor'    : args.ploidy,
         'gpu_available' : args.gpu_available.lower() == "true",
         'model_path'    : model_path,
         'stat_path'     : stat_path,
+        'work_dir'      : args.work_dir,
         'batch_size'    : 8192,
         'feature_dim'   : 30,
         'max_id_len'    : 20,

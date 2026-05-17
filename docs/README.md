@@ -1,66 +1,49 @@
 # DeepCaller
 
-<p align="center">
+<p align="left"> 
   <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/python-3.9-blue" alt="Python">
   <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Platform">
 </p>
 
-**DeepCaller** is a deep learning–based variant caller for the accurate detection of SNPs and small indels in polyploid genomes from short-read sequencing data. It provides pre-trained models for tetraploid and hexaploid crops and supports both speed-optimized and accuracy-optimized inference modes.
+**DeepCaller** is a deep learning–based variant caller for the accurate detection of SNPs and small indels in polyploid genomes from short-read sequencing data. It provides five pre-trained models for tetraploid and hexaploid crops and supports both speed-optimized and performance-optimized inference modes. A [Chinese tutorial](docs/README_zh.md) is also available.
 
-> **Note**: This repository accompanies a manuscript currently under review. Full use of the software is permitted upon publication. See [LICENSE](LICENSE) for details.
-
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Supported Species](#supported-species)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Output](#output)
-- [Citation](#citation)
+> **Note**: This repository accompanies a manuscript currently under review. Full use of the software is permitted upon publication. See [LICENSE](LICENSE) for details. 
 
 ---
+
+## 🏛️ Background
 
 <p align="center">
   <img src="docs/flow.png" alt="DeepCaller Workflow" width="800">
 </p>
 
----
-
-## Features
-
-- **Polyploid-aware genotyping** — native support for tetraploid and hexaploid genomes with ploidy-specific genotype encoding
-- **Five pre-trained models** — covering potato, alfalfa, modern rose, sweetpotato, and a potato-derived synthetic hexaploid
-- **Dual inference modes** — `speed` mode for rapid genome-wide screening; `performance` mode for maximum accuracy
-- **Whole-genome depth normalisation** — sequencing depth is estimated from all chromosomes regardless of the target region, ensuring robust variant filtering
-- **GPU-optional** — runs on CPU-only servers; GPU acceleration is supported when available
-- **Standard output** — bgzip-compressed, tabix-indexed VCF 4.2
+The DeepCaller workflow comprises four sequential steps. **Step 1:** After filtering the input BAM file, DeepCaller performs per-site analysis and selects candidate variant sites based on dual thresholds on minor allele frequency and read depth. **Step 2:** Both strands of each candidate site, along with flanking bases, are encoded into a structured pileup tensor. **Step 3:** Tensors are fed into a recurrent neural network (RNN) comprising two bidirectional LSTM (Bi-LSTM) layers followed by three feedforward layers with ReLU activations, predicting genotypes across ploidy-specific categories (five for tetraploids, seven for hexaploids). **Step 4:** DeepCaller generates a VCF file from the predicted genotypes and alignment data.
 
 ---
 
-## Supported Species
+## 🌿 Supported Species
 
-| `--species`   | Common name                | Ploidy | Training dataset |
-|---------------|----------------------------|--------|------------------|
-| `potato`      | Tetraploid potato          | 4x     | C88              |
-| `alfalfa`     | Alfalfa                    | 4x     | Bolivia          |
-| `rose`        | Modern rose                | 4x     | Samantha         |
-| `sweetpotato` | Sweetpotato                | 6x     | Tanzania         |
-| `syn_potato`  | Synthetic hexaploid potato | 6x     | SyntheticPotato  |
+| `--species`   | Common name                | Ploidy | Training dataset | Default |
+|---------------|----------------------------|--------|------------------|---------|
+| `potato`      | Tetraploid potato          | 4x     | C88              | ✓ (ploidy 4) |
+| `alfalfa`     | Alfalfa                    | 4x     | Bolivia          | |
+| `rose`        | Modern rose                | 4x     | Samantha         | |
+| `sweetpotato` | Sweetpotato                | 6x     | Tanzania         | ✓ (ploidy 6) |
+| `syn_potato`  | Synthetic hexaploid potato | 6x     | SyntheticPotato  | |
+
+> Users are encouraged to select the species model most similar to their target organism; if uncertain, the default models (`potato` for 4x, `sweetpotato` for 6x) are recommended.
 
 ---
 
-## Installation
+## 🛠️ Installation
 
 ### Requirements
 
 - Linux (x86_64)
 - [Conda](https://docs.conda.io/en/latest/miniconda.html) ≥ 4.10
-- samtools, mosdepth, bgzip, tabix (all installed automatically via the conda environment)
+- samtools, mosdepth, bgzip, tabix (installed automatically via the conda environment)
 
 ### Steps
 
@@ -82,7 +65,7 @@ DeepCaller --version
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 A small demo dataset (chromosome 10, 1 Mb region; tetraploid potato C88 at ~20× coverage) is provided in the `Demo/` directory.
 
@@ -97,13 +80,9 @@ DeepCaller \
     -o demo_output.vcf
 ```
 
-> `--species` is omitted here — DeepCaller automatically selects `potato` as the default model when `--ploidy 4` is set.
-
-Expected runtime: < 2 minutes on a 24-core server.
-
 ---
 
-## Usage
+## 📖 Usage
 
 ```
 DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
@@ -113,8 +92,8 @@ DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `-r`, `--ref` | Reference FASTA file (must be indexed) |
-| `-b`, `--bam` | Input BAM file (must be coordinate-sorted) |
+| `-r`, `--ref` | Reference FASTA file |
+| `-b`, `--bam` | Input BAM file |
 | `-p`, `--ploidy` | Ploidy level: `4` or `6` |
 
 ### Input/output configuration
@@ -122,17 +101,17 @@ DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `-o`, `--output` | `output.vcf` | Output VCF file (will be bgzip-compressed) |
-| `-c`, `--chroms` | all | Chromosomes to process (space-separated) |
+| `-c`, `--chroms` | all | Chromosomes to process |
 | `-l`, `--bed` | — | BED file restricting variant calling to target regions; overrides `--chroms` |
 
 ### Processing options
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `-s`, `--species` | auto | Species model — defaults to `potato` for ploidy 4, `sweetpotato` for ploidy 6; see [Supported Species](#supported-species) |
+| `-s`, `--species` | auto | Species model — defaults to `potato` (4x) when `--ploidy 4`, and `sweetpotato` (6x) when `--ploidy 6` |
 | `-m`, `--mode` | `speed` | Inference mode: `speed` or `performance` |
 | `-t`, `--cpus` | `24` | CPU threads; use `-1` for all available |
-| `--min_vaf` | `0.10` | Minimum allele frequency at candidate sites |
+| `--min_af` | `0.10` | Minimum allele frequency at candidate sites |
 | `--rd_floor` | `10` | Minimum read depth at candidate sites |
 | `--no_gpu` | — | Disable GPU acceleration |
 
@@ -140,7 +119,7 @@ DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
 
 ```bash
 # Tetraploid potato, whole genome, performance mode
-DeepCaller -r ref.fa -b sample.bam -p 4 --mode performance -o out.vcf -t 32
+DeepCaller -r ref.fa -b sample.bam -p 4 --mode performance -o out.vcf -t 24
 
 # Hexaploid sweetpotato, specific chromosomes
 DeepCaller -r ref.fa -b sample.bam -p 6 -c chr1 chr2 chr3 -o out.vcf
@@ -151,7 +130,7 @@ DeepCaller -r ref.fa -b sample.bam -p 4 --species alfalfa -l targets.bed -o out.
 
 ---
 
-## Output
+## 📄 Output
 
 DeepCaller produces a bgzip-compressed, tabix-indexed VCF file (`<output>.gz` and `<output>.gz.tbi`).
 
@@ -167,7 +146,7 @@ DeepCaller produces a bgzip-compressed, tabix-indexed VCF file (`<output>.gz` an
 
 ---
 
-## Citation
+## 📝 Citation
 
 If you use DeepCaller in your research, please cite:
 
@@ -175,13 +154,13 @@ If you use DeepCaller in your research, please cite:
 
 ---
 
-## License
+## ⚖️ License
 
 This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.  
 Full use is permitted upon official publication of the accompanying manuscript.
 
 ---
 
-## Contact
+## 📬 Contact
 
 Kang Xiao · [xiaokangneuq@163.com](mailto:xiaokangneuq@163.com)

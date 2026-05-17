@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import uuid
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -11,6 +12,7 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 
 import pysam
+import shutil
 import argparse
 import multiprocessing
 import tensorflow as tf
@@ -24,8 +26,8 @@ from .utils_bam import (
     filter_bam,
     summarize_genome_depth,
 )
-from .utils_vcf import generate_vcf, cleanup_perchr_outputs
-from DeepCaller import __version__, __author__, __email__
+from .utils_vcf import generate_vcf
+from DeepCaller import __version__
 
 
 # Species → (model folder name, supported ploidy levels)
@@ -104,7 +106,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version=f"DeepCaller {__version__} | {__author__} <{__email__}>",
+        version=f"DeepCaller {__version__}",
     )
 
     required = parser.add_argument_group('Required arguments')
@@ -140,7 +142,7 @@ def main():
         "-t", "--cpus",
         type=cpu_count_type,
         default=24,
-        help="Number of CPU cores. Use -1 to use all available (default: 24)",
+        help="Number of CPU cores. Use -1 to use all available",
     )
     processing.add_argument(
         "-s", "--species",
@@ -160,7 +162,7 @@ def main():
         help="Inference mode: speed (faster) or performance (more accurate)",
     )
     processing.add_argument(
-        "--min_vaf",
+        "--min_af",
         type=float,
         default=0.10,
         help="Threshold of allele frequency at candidate variants",
@@ -184,8 +186,11 @@ def main():
     if args.species is None:
         args.species = PLOIDY_DEFAULT_SPECIES[args.ploidy]
 
-    work_dir = os.getcwd()
-    vcf_file = os.path.join(work_dir, args.output)
+    # Unique working directory for intermediate files
+    work_dir = os.path.join(os.getcwd(), f"DeepCaller_tem_dir_{uuid.uuid4().hex[:8]}")
+    os.makedirs(work_dir, exist_ok=True)
+
+    vcf_file = os.path.join(os.getcwd(), args.output)
 
     # ============================================================
     # STEP 0: INPUT VALIDATION
@@ -207,8 +212,8 @@ def main():
     if not os.path.isdir(output_dir):
         sys.exit(f"[ERROR] Output directory does not exist: {output_dir}")
 
-    if not (0 < args.min_vaf < 1):
-        sys.exit(f"[ERROR] --min_vaf must be between 0 and 1 (exclusive), got {args.min_vaf}")
+    if not (0 < args.min_af < 1):
+        sys.exit(f"[ERROR] --min_af must be between 0 and 1 (exclusive), got {args.min_af}")
 
     if args.rd_floor < 1:
         sys.exit(f"[ERROR] --rd_floor must be a positive integer, got {args.rd_floor}")
@@ -344,16 +349,17 @@ def main():
 
         process_args = [
             "--ref",           args.ref,
-            "--bam",           f"temp_{chrom}.bam",
+            "--bam",           os.path.join(work_dir, f"temp_{chrom}.bam"),
             "--chrom",         chrom,
             "--ploidy",        str(args.ploidy),
             "--cpus",          str(num_threads),
             "--bam_depth",     str(bam_depth),
             "--species",       args.species,
             "--mode",          args.mode,
-            "--min_vaf",       str(args.min_vaf),
+            "--min_af",       str(args.min_af),
             "--rd_floor",      str(args.rd_floor),
             "--gpu_available", str(gpu_available),
+            "--work_dir",      work_dir,
         ]
 
         if args.bed is not None:
@@ -382,11 +388,12 @@ def main():
             args.ref,
             chrom_list,
             num_threads,
-            args.output,
+            vcf_file,
             args.ploidy,
+            work_dir,
         )
 
-        print(f"[OK] VCF generated: {vcf_file}")
+        print(f"[OK] VCF generated: {vcf_file}.gz")
         print("[OK] VCF file generation complete!")
 
     except Exception as e:
@@ -398,7 +405,7 @@ def main():
     print("\n" + "=" * 80)
 
     try:
-        cleanup_perchr_outputs(work_dir, all_chroms)
+        shutil.rmtree(work_dir)
     except Exception as e:
         print(f"[WARNING] Cleanup incomplete: {str(e)}")
 
