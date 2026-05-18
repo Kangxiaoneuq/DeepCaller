@@ -124,7 +124,7 @@ DeepCaller -r ref.fa -b sample.bam -p 4 --mode performance -o out.vcf -t 24
 DeepCaller -r ref.fa -b sample.bam -p 6 -c chr1 chr2 chr3 -o out.vcf
 
 # Alfalfa, target regions only (BED file)
-DeepCaller -r ref.fa -b sample.bam -p 4 --species alfalfa -l targets.bed -o out.vcf
+DeepCaller -r ref.fa -b sample.bam -p 4 --species alfalfa --bed targets.bed -o out.vcf
 ```
 
 ---
