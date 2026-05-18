@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Platform">
 </p>
 
-**DeepCaller** is a deep learning–based variant caller for the accurate detection of SNPs and small indels in polyploid genomes from short-read sequencing data. It provides five pre-trained models for tetraploid and hexaploid crops and supports both speed-optimized and performance-optimized inference modes. A [Chinese tutorial](docs/README_zh.md) is also available.
+**DeepCaller** is a deep learning–based variant caller for the accurate detection of SNPs and small indels in polyploid genomes from short-read. It provides five pre-trained models for tetraploid and hexaploid crops and supports both speed-optimized and performance-optimized inference modes. A [Chinese tutorial](docs/README_zh.md) is also available.
 
 > **Note**: This repository accompanies a manuscript currently under review. Full use of the software is permitted upon publication. See [LICENSE](LICENSE) for details. 
 
@@ -43,7 +43,6 @@ The DeepCaller workflow comprises four sequential steps. **Step 1:** After filte
 
 - Linux (x86_64)
 - [Conda](https://docs.conda.io/en/latest/miniconda.html) ≥ 4.10
-- samtools, mosdepth, bgzip, tabix (installed automatically via the conda environment)
 
 ### Steps
 
@@ -102,7 +101,7 @@ DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
 |----------|---------|-------------|
 | `-o`, `--output` | `output.vcf` | Output VCF file (will be bgzip-compressed) |
 | `-c`, `--chroms` | all | Chromosomes to process |
-| `-l`, `--bed` | — | BED file restricting variant calling to target regions; overrides `--chroms` |
+| `--bed` | — | BED file restricting variant calling to target regions; overrides `--chroms` |
 
 ### Processing options
 
@@ -110,7 +109,7 @@ DeepCaller -r <REF> -b <BAM> -p <PLOIDY> [options]
 |----------|---------|-------------|
 | `-s`, `--species` | auto | Species model |
 | `-m`, `--mode` | `speed` | Inference mode: `speed` or `performance` |
-| `-t`, `--cpus` | `24` | CPU threads; use `-1` for all available |
+| `-t`, `--threads` | `24` | CPU threads; use `-1` for all available |
 | `--min_af` | `0.10` | Minimum allele frequency at candidate sites |
 | `--rd_floor` | `10` | Minimum read depth at candidate sites |
 | `--no_gpu` | — | Disable GPU acceleration |
